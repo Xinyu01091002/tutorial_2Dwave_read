@@ -113,14 +113,23 @@ int main(int argc, char *argv[])
   // When we use adaptive refinement, we start with a coarse mesh which
   // will be refined as required when initialising the wave. */
 
-// #if TREE
-//   N = 32;
-// #else
-//   N = 1 << LEVEL;
-// #endif
-  N=32;
+  // #if TREE
+  //   N = 32;
+  // #else
+  //   N = 1 << LEVEL;
+  // #endif
+  N = 256;
   // init_grid (N);
   run();
+}
+
+double my_eta(double x, double y, double *eta_s)
+{
+  int index_x;
+  double Delta = 0;
+  Delta = L0 / N;
+  index_x = round((x + L0 / 2) / Delta);
+  return *(eta_s + index_x) - y;
 }
 
 event init(i = 0)
@@ -131,20 +140,12 @@ event init(i = 0)
     FILE *fp;
     float eta_posi, phi_posi;
 
-    int max_n = N+1;
+    int max_n = N + 1;
     double *eta_s = (double *)malloc(max_n * sizeof(double));
     double *phi_s = (double *)malloc(max_n * sizeof(double));
 
-    // // 检查内存分配是否成功
-    // if (eta_s == NULL || phi_s == NULL) {
-    //     fprintf(stderr, "Memory allocation failed\n");
-    //     return 1;
-    // }
-
-    // 打开文件
-    // char filename[] = "OceanWave3D.init";
     char filename[100];
-    sprintf(filename,"Stoke3_%d.txt",N);
+    sprintf(filename, "stoke3/Stoke3_%d.txt", N);
     fp = fopen(filename, "r");
 
     // 读取文件内容到数组中
@@ -166,8 +167,6 @@ event init(i = 0)
 
     // 处理完数据后，释放内存
 
-
-
     do
     {
 
@@ -179,21 +178,22 @@ event init(i = 0)
       {
         static int index_x = 1;
         index_x = round((x + L0 / 2) / Delta_x); // Remember to change when L0 is not 1
-        my_f[] = eta_s[index_x] - y-L0/2;
+        my_f[] = eta_s[index_x] - y - L0 / 2;
         my_phi[] = phi_s[index_x];
       }
-            foreach ()
+      foreach ()
       {
         static int index_x = 1;
         index_x = round((x + L0 / 2) / Delta_x); // Remember to change when L0 is not 1
         static int index_y = 1;
-        index_x = round((y+ L0 / 2) / Delta_y); // Remember to change when L0 is not 1
-        static double printf_x=0;
-        static double printf_y=0;
-        printf_x=my_f[];
+        index_x = round((y + L0 / 2) / Delta_y); // Remember to change when L0 is not 1
+        static double printf_x = 0;
+        static double printf_y = 0;
+        printf_x = my_f[];
       }
 
-      fraction(f, my_f[]);
+      // fraction(f, my_f[]);
+      fraction(f, my_eta(x, y, eta_s));
       foreach ()
       {
         if (f[] == 1 || f[] == 0)
@@ -212,7 +212,7 @@ event init(i = 0)
       {
         foreach ()
         {
-          if (f[] == 1)
+          if (f[] ==1)
           {
             // my_phi[] = (my_phi[1, 0]*f[1,0] + my_phi[-1, 0]*f[-1,0] + my_phi[0, 1]*f[0,1] + my_phi[0, -1]*f[0,-1]) / 4;
             my_phi[] = (my_phi[1, 0] + my_phi[-1, 0] + my_phi[0, 1] + my_phi[0, -1]) / 4;
@@ -220,12 +220,12 @@ event init(i = 0)
         }
         foreach ()
         {
-          if (f[] == 1)
+          if (f[] ==1)
           {
             residual_J[] = (my_phi[1, 0] + my_phi[-1, 0] + my_phi[0, 1] + my_phi[0, -1] - 4 * my_phi[0, 0]);
           }
         }
-      } while (normf(residual_J).max / normf(my_phi).max > 1e-3);
+      } while (normf(residual_J).max / normf(my_phi).max > 1e-4);
       // Smooth the boundary phi
 
       foreach ()
@@ -237,17 +237,28 @@ event init(i = 0)
         }
       }
       foreach ()
-        // foreach_dimension()
+      // foreach_dimension()
+      {
+        if (f[] > 0 && f[] < 1 && f[0, -1] == 1)
         {
-          if (f[] > 0 && f[] < 1 &&f[0,-1]==1)
+          u.x[] = u.x[0, -1] * f[];
+          u.y[] = u.y[0, -1] * f[];
+        }
+        if (f[0, -1] > 0 && f[0, -1] < 1)
+        {
+          u.x[] = u.x[0, -1] * f[];
+          u.y[] = u.y[0, -1] * f[];
+        }
+      }
+      foreach ()
+        foreach_dimension()
+        {
+          if (f[] > 0)
           {
-            u.x[]=u.x[0,-1]*f[];
-            u.y[]=u.y[0,-1]*f[];
-          }
-          if (f[0,-1]>0 &&f[0,-1]<1)
-          {
-            u.x[]=u.x[0,-1]*f[];
-            u.y[]=u.y[0,-1]*f[];
+            if (u.x[] > u.x[1, 0] && u.x[] > u.x[0, 1] && u.x[] > u.x[0, -1] && u.x[] > u.x[-1, 0])
+            {
+              u.x[] = (u.x[1, 0] + u.x[-1, 0] + u.x[0, 1] + u.x[0, -1]) / 4;
+            }
           }
         }
       boundary((scalar *){u});
@@ -259,14 +270,14 @@ event init(i = 0)
     On trees, we repeat this initialisation until mesh adaptation does
     not refine the mesh anymore. */
 
-#if TREE
-    while (adapt_wavelet({f, u},
-                         (double[]){0.01, uemax, uemax, uemax}, LEVEL, 5)
-               .nf);
-#else
+    // #if TREE
+    //     while (adapt_wavelet({f, u},
+    //                          (double[]){0.02, uemax, uemax, uemax}, LEVEL, 5)
+    //                .nf);
+    // #else
+    //     while (0);
+    // #endif
     while (0);
-#endif
-    // while(0);
   }
 }
 
