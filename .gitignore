@@ -2,6 +2,6 @@
 perfs
 *.c.*
 *.s*
-
+*.mp4
 .vscode/
 ./
