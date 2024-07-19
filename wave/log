@@ -1,0 +1,11 @@
+.qcc3RInIa/wave.c:1:7: warning: line number out of range
+/home/lxy/Desktop/basilisk_tutorial/tutorial_2Dwave_read/.qcc3RInIa//:1:7: warning: line number out of range
+<built-in>: warning: line number out of range
+/usr/include/stdc-predef.h:1:7: warning: line number out of range
+wave.c: In function ‘init_0’:
+wave.c:190:23: warning: unused variable ‘printf_y’ [-Wunused-variable]
+wave.c:189:23: warning: variable ‘printf_x’ set but not used [-Wunused-but-set-variable]
+wave.c:187:20: warning: unused variable ‘index_y’ [-Wunused-variable]
+wave.c:185:20: warning: variable ‘index_x’ set but not used [-Wunused-but-set-variable]
+/usr/bin/ld: cannot open output file wave/wave: 权限不够
+collect2: error: ld returned 1 exit status

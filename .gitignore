@@ -1,0 +1,7 @@
+*dump*
+perfs
+*.c.*
+*.s*
+
+.vscode/
+./
