@@ -1,9 +1,9 @@
-.qcc0g2CN9/wave.c:1:7: warning: line number out of range
+.qccAJynWk/wave.c:1:7: warning: line number out of range
 wave-cpp.c: warning: line number out of range
 <built-in>: warning: line number out of range
 /usr/include/stdc-predef.h:1:7: warning: line number out of range
 wave.c: In function ‘init_0’:
-wave.c:191:23: warning: unused variable ‘printf_y’ [-Wunused-variable]
-wave.c:190:23: warning: variable ‘printf_x’ set but not used [-Wunused-but-set-variable]
-wave.c:188:20: warning: unused variable ‘index_y’ [-Wunused-variable]
-wave.c:186:20: warning: variable ‘index_x’ set but not used [-Wunused-but-set-variable]
+wave.c:220:23: warning: unused variable ‘printf_y’ [-Wunused-variable]
+wave.c:219:23: warning: variable ‘printf_x’ set but not used [-Wunused-but-set-variable]
+wave.c:217:20: warning: unused variable ‘index_y’ [-Wunused-variable]
+wave.c:215:20: warning: variable ‘index_x’ set but not used [-Wunused-but-set-variable]

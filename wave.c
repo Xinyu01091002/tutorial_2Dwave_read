@@ -131,7 +131,36 @@ double my_eta(double x, double y, double *eta_s)
   index_x = round((x + L0 / 2) / Delta);
   return *(eta_s + index_x) - y;
 }
-
+// Modify the metric factor following src/radial.h
+event metric(i = 0)
+{
+  if (is_constant(cm))
+  {
+    scalar *l = list_copy(all);
+    cm = new scalar;
+    free(all);
+    all = list_concat({cm}, l);
+    free(l);
+  }
+  if (is_constant(fm.x))
+  {
+    scalar *l = list_copy(all);
+    fm = new face vector;
+    free(all);
+    all = list_concat((scalar *){fm}, l);
+    free(l);
+  }
+  face vector fmv = fm;
+  foreach_face()
+  {
+    fmv.x[] = 1.;
+    fmv.y[] = 1;
+    // fmv.z[] = 1.; For 3D
+  }
+  scalar cmv = cm;
+  foreach ()
+    cmv[] = 1;
+}
 event init(i = 0)
 {
 
@@ -212,7 +241,7 @@ event init(i = 0)
       {
         foreach ()
         {
-          if (f[] ==1)
+          if (f[] == 1)
           {
             // my_phi[] = (my_phi[1, 0]*f[1,0] + my_phi[-1, 0]*f[-1,0] + my_phi[0, 1]*f[0,1] + my_phi[0, -1]*f[0,-1]) / 4;
             my_phi[] = (my_phi[1, 0] + my_phi[-1, 0] + my_phi[0, 1] + my_phi[0, -1]) / 4;
@@ -220,7 +249,7 @@ event init(i = 0)
         }
         foreach ()
         {
-          if (f[] ==1)
+          if (f[] == 1)
           {
             residual_J[] = (my_phi[1, 0] + my_phi[-1, 0] + my_phi[0, 1] + my_phi[0, -1] - 4 * my_phi[0, 0]);
           }
