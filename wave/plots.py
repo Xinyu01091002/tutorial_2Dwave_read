@@ -6,7 +6,7 @@
 # and using a momentum-conserving transport of each phase. Gravity is
 # taken into account using the "reduced gravity approach" and the
 # results are visualised using Basilisk view. */
-# 
+# // #include "metric.h"
 # #include "navier-stokes/centered.h"
 # #include "two-phase.h"
 # #include "navier-stokes/conserving.h"
@@ -25,9 +25,9 @@
 # The primary parameters are the wave steepness $ak$, the Bond and
 # Reynolds numbers. */
 # 
-# // double ak = 0.55;
-# // double BO = 1000.;
-# // double RE = 40000.;
+# double ak = 0.55;
+# double BO = 1000.;
+# double RE = 40000.;
 # 
 # /**
 # The default maximum level of refinement depends on the dimension. */
@@ -43,8 +43,8 @@
 # /**
 # The density and viscosity ratios are those of air and water. */
 # 
-# // #define RATIO (1. / 850.)
-# // #define MURATIO (17.4e-6 / 8.9e-4)
+# #define RATIO (1. / 850.)
+# #define MURATIO (17.4e-6 / 8.9e-4)
 # 
 # /**
 # Define if we want to use a Dirac viscous layer initialization. */
@@ -55,9 +55,9 @@
 # The wave number, fluid depth and acceleration of gravity are set to
 # these values. */
 # 
-# // #define k_ (2. * pi)
-# // #define h_ 0.5
-# // #define g_ 1.
+# #define k_ (2. * pi)
+# #define h_ 0.5
+# #define g_ 1.
 # 
 # /**
 # The program takes optional arguments which are the level of
@@ -80,7 +80,16 @@
 #   /**
 #   The domain is a cubic box centered on the origin and of length
 #   , periodic in the x- and z-directions. */
-#   L0 = 1;
+# 
+# // Modify the metric factor
+# face vector fmv=fm;
+# scalar cmv=cm;
+# const face vector unityf1[] = {1.[0],1[0],1.[0]};
+# const scalar unity1[] = 1[0];
+# fm.x=unityf1.x;
+# fm.y=unityf1.y;
+# cm=unity1;
+#   L0 = 2;
 #   size(L0);
 #   origin(-L0 / 2, -L0 / 2, -L0 / 2);
 #   // origin (-L0/2, -L0/2);
@@ -94,20 +103,19 @@
 #   /**
 #   Here we set the densities and viscosities corresponding to the
 #   parameters above. */
-#   rho1 = 1000;
-#   rho2 = 1.293;
-#   mu1 = 0.001002;
-#   mu2 = 1.825 * 1e-5;
-#   f.sigma = 0.0728;
-#   G.y = -9.8;
-#   // rho1 = 1.;
-#   // rho2 = RATIO;
-#   // mu1 = 1.0 / RE; // using wavelength as length scale
-#   // mu2 = 1.0 / RE * MURATIO;
-#   // f.sigma = 1. / (BO * sq(k_));
-#   // // f.sigma = 1. / (BO * sq(1));
-#   // G.y = -g_/(2*pi);
-#   // // G.y = 0;
+#   // rho1 = 1000;
+#   // // rho2 = 1.17647;
+#   // rho2 = 0.5;
+#   // mu1 = 17.4e-6 ;
+#   // mu2 = 8.9e-4;
+#   // f.sigma = 0.0728;
+#   // G.y = -9.8;
+#   rho1 = 1.;
+#   rho2 = RATIO;
+#   mu1 = 1.0 / RE; // using wavelength as length scale
+#   mu2 = 1.0 / RE * MURATIO;
+#   f.sigma = 1. / (BO * sq(k_));
+#   G.y = -g_;
 #   // // Modify the vertical metric scale
 # 
 #   // /**
@@ -119,8 +127,9 @@
 #   // #else
 #   //   N = 1 << LEVEL;
 #   // #endif
-#   N = 256;
+#   N = 512;
 #   // init_grid (N);
+# // event ("Metric");
 #   run();
 # }
 # 
@@ -133,35 +142,35 @@
 #   return *(eta_s + index_x) - y;
 # }
 # // Modify the metric factor following src/radial.h
-# event metric(i = 0)
-# {
-#   if (is_constant(cm))
-#   {
-#     scalar *l = list_copy(all);
-#     cm = new scalar;
-#     free(all);
-#     all = list_concat({cm}, l);
-#     free(l);
-#   }
-#   if (is_constant(fm.x))
-#   {
-#     scalar *l = list_copy(all);
-#     fm = new face vector;
-#     free(all);
-#     all = list_concat((scalar *){fm}, l);
-#     free(l);
-#   }
-#   face vector fmv = fm;
-#   foreach_face()
-#   {
-#     fmv.x[] = 1.;
-#     fmv.y[] = 1;
-#     // fmv.z[] = 1.; For 3D
-#   }
-#   scalar cmv = cm;
-#   foreach ()
-#     cmv[] = 1;
-# }
+# // event Metric(i=0)
+# // {
+# //   if (is_constant(cm))
+# //   {
+# //     scalar *l = list_copy(all);
+# //     cm = new scalar;
+# //     free(all);
+# //     all = list_concat({cm}, l);
+# //     free(l);
+# //   }
+# //   if (is_constant(fm.x))
+# //   {
+# //     scalar *l = list_copy(all);
+# //     fm = new face vector;
+# //     free(all);
+# //     all = list_concat((scalar *){fm}, l);
+# //     free(l);
+# //   }
+# //   face vector fmv = fm;
+# //   foreach_face()
+# //   {
+# //     fmv.x[] = 1.;
+# //     fmv.y[] = 0.1;
+# //     // fmv.z[] = 1.; For 3D
+# //   }
+# //   scalar cmv = cm;
+# //   foreach ()
+# //     cmv[] = 0.1;
+# // }
 # event init(i = 0)
 # {
 # 
@@ -208,7 +217,7 @@
 #       {
 #         static int index_x = 1;
 #         index_x = round((x + L0 / 2) / Delta_x); // Remember to change when L0 is not 1
-#         my_f[] = eta_s[index_x] - y - L0 / 2;
+#         my_f[] = eta_s[index_x]- y*fm.y[];
 #         my_phi[] = phi_s[index_x];
 #       }
 #       foreach ()
@@ -222,8 +231,8 @@
 #         printf_x = my_f[];
 #       }
 # 
-#       // fraction(f, my_f[]);
-#       fraction(f, my_eta(x, y, eta_s));
+#       fraction(f, my_f[]);
+#       // fraction(f, my_eta(x, y, eta_s));
 #       foreach ()
 #       {
 #         if (f[] == 1 || f[] == 0)
@@ -262,11 +271,12 @@
 #       {
 #         foreach_dimension()
 #         {
-#           u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta) * f[];
+#           // u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta*fm.x[]) * f[];
+#           u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta )* f[];
 #           // u.y[] = (my_phi[0,1] - my_phi[0,-1]) / (2.0 * Delta) * f[];
 #         }
 #       }
-#       foreach ()
+#  foreach ()
 #       // foreach_dimension()
 #       {
 #         if (f[] > 0 && f[] < 1 && f[0, -1] == 1)
@@ -311,7 +321,7 @@
 #   }
 # }
 # 
-# event movies(t += 0.002)
+# event movies(t += 0.01)
 # {
 #   {
 #     static FILE *fp = popen("ppm2mp4 f.mp4", "w");
@@ -341,7 +351,7 @@
 # The wave period is `k_/sqrt(g_*k_)`. We want to run up to 2
 # (alternatively 4) periods. */
 # 
-# event end(t = 2)
+# event end(t = 2*k_/sqrt(g_*k_))
 # {
 #   fprintf(fout, "i = %d t = %g\n", i, t);
 #   dump("end");

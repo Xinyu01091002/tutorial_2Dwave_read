@@ -1,4 +1,31 @@
-const face vector unityf1[] = {10.[0],0.1[0],1.[0]};
-const scalar unity1[] = 1.[0];
-(const) face vector fm = unityf1 ;// fixme: should just be fm = {1,1,1};
-(const) scalar cm = unity1; // fixme: should just be cm = 1.;
+event Metric(i = 0)
+{
+    if (is_constant(cm))
+    {
+        scalar *l = list_copy(all);
+        cm = new scalar;
+        free(all);
+        all = list_concat({cm}, l);
+        free(l);
+    }
+
+if (is_constant(fm.x))
+{
+    scalar *l = list_copy(all);
+    fm = new face vector;
+    free(all);
+    all = list_concat((scalar *){fm}, l);
+    free(l);
+}
+scalar cmv = cm;
+foreach ()
+    cmv[] = 0.1;
+
+face vector fmv = fm;
+foreach_face()
+{
+    fmv.x[] = 1.;
+    fmv.y[] = .1;
+    // fmv.z[] = 1.; For 3D
+}
+}
