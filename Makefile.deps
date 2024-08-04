@@ -18,6 +18,7 @@ wave.s:	\
 	/home/lxy/Desktop/BASILISK/basilisk/src/reduced.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/view.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/tag.h \
+	/home/lxy/Desktop/BASILISK/basilisk/src/vtk.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/navier-stokes/perfs.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/profiling.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/utils.h \
@@ -78,6 +79,7 @@ wave.c.tags:	\
 	/home/lxy/Desktop/BASILISK/basilisk/src/reduced.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/view.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/tag.h \
+	/home/lxy/Desktop/BASILISK/basilisk/src/vtk.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/navier-stokes/perfs.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/profiling.h \
 	/home/lxy/Desktop/BASILISK/basilisk/src/utils.h \

@@ -13,6 +13,7 @@ results are visualised using Basilisk view. */
 #include "reduced.h"
 #include "view.h"
 #include "tag.h"
+#include "vtk.h"
 
 /**
 We log some profiling information. */
@@ -57,7 +58,7 @@ these values. */
 #define k_ (2. * pi)
 #define h_ 0.5
 #define g_ 1.
-
+#define y_metric 1
 /**
 The program takes optional arguments which are the level of
 refinement, steepness, Bond and Reynolds numbers, and optional Dirac
@@ -79,12 +80,13 @@ int main(int argc, char *argv[])
   /**
   The domain is a cubic box centered on the origin and of length
   , periodic in the x- and z-directions. */
-
+// Dimensionless group velocity 
+double cp=1.56;
 // Modify the metric factor
 face vector fmv=fm;
 scalar cmv=cm;
-const face vector unityf1[] = {1.[0],1[0],1.[0]};
-const scalar unity1[] = 1[0];
+const face vector unityf1[] = {1.[0],y_metric[0],1.[0]};
+const scalar unity1[] = y_metric[0];
 fm.x=unityf1.x;
 fm.y=unityf1.y;
 cm=unity1;
@@ -95,6 +97,10 @@ cm=unity1;
   //  size(L3);
   //  origin(-L3/2,-L3/2,-L3/2);
   periodic(right);
+    //   u.n[left]=neumann(0.);
+    // u.n[right]=neumann(0.);
+    //   u.t[left]=neumann(0.);
+    // u.t[right]=neumann(0.);
 #if dimension > 2
   periodic(front);
 #endif
@@ -103,16 +109,17 @@ cm=unity1;
   Here we set the densities and viscosities corresponding to the
   parameters above. */
   // rho1 = 1000;
-  // // rho2 = 1.17647;
-  // rho2 = 0.5;
+  // rho2 = 1.17647;
+  // // rho2 = 0.5;
   // mu1 = 17.4e-6 ;
   // mu2 = 8.9e-4;
+  // // mu2=1e-10;
   // f.sigma = 0.0728;
   // G.y = -9.8;
   rho1 = 1.;
   rho2 = RATIO;
   mu1 = 1.0 / RE; // using wavelength as length scale
-  mu2 = 1.0 / RE * MURATIO;
+  mu2 = 1/ RE * MURATIO;
   f.sigma = 1. / (BO * sq(k_));
   G.y = -g_;
   // // Modify the vertical metric scale
@@ -127,8 +134,7 @@ cm=unity1;
   //   N = 1 << LEVEL;
   // #endif
   N = 512;
-  // init_grid (N);
-// event ("Metric");
+
   run();
 }
 
@@ -140,36 +146,7 @@ double my_eta(double x, double y, double *eta_s)
   index_x = round((x + L0 / 2) / Delta);
   return *(eta_s + index_x) - y;
 }
-// Modify the metric factor following src/radial.h
-// event Metric(i=0)
-// {
-//   if (is_constant(cm))
-//   {
-//     scalar *l = list_copy(all);
-//     cm = new scalar;
-//     free(all);
-//     all = list_concat({cm}, l);
-//     free(l);
-//   }
-//   if (is_constant(fm.x))
-//   {
-//     scalar *l = list_copy(all);
-//     fm = new face vector;
-//     free(all);
-//     all = list_concat((scalar *){fm}, l);
-//     free(l);
-//   }
-//   face vector fmv = fm;
-//   foreach_face()
-//   {
-//     fmv.x[] = 1.;
-//     fmv.y[] = 0.1;
-//     // fmv.z[] = 1.; For 3D
-//   }
-//   scalar cmv = cm;
-//   foreach ()
-//     cmv[] = 0.1;
-// }
+
 event init(i = 0)
 {
 
@@ -184,6 +161,8 @@ event init(i = 0)
 
     char filename[100];
     sprintf(filename, "stoke3/Stoke3_%d.txt", N);
+    // sprintf(filename, "OceanWave3D.init.512");
+    // sprintf(filename, "OceanWave3D.init");
     fp = fopen(filename, "r");
 
     // 读取文件内容到数组中
@@ -219,16 +198,16 @@ event init(i = 0)
         my_f[] = eta_s[index_x]- y*fm.y[];
         my_phi[] = phi_s[index_x];
       }
-      foreach ()
-      {
-        static int index_x = 1;
-        index_x = round((x + L0 / 2) / Delta_x); // Remember to change when L0 is not 1
-        static int index_y = 1;
-        index_x = round((y + L0 / 2) / Delta_y); // Remember to change when L0 is not 1
-        static double printf_x = 0;
-        static double printf_y = 0;
-        printf_x = my_f[];
-      }
+      // foreach ()
+      // {
+      //   static int index_x = 1;
+      //   index_x = round((x + L0 / 2) / Delta_x); // Remember to change when L0 is not 1
+      //   static int index_y = 1;
+      //   index_x = round((y + L0 / 2) / Delta_y); // Remember to change when L0 is not 1
+      //   static double printf_x = 0;
+      //   static double printf_y = 0;
+      //   printf_x = my_f[];
+      // }
 
       fraction(f, my_f[]);
       // fraction(f, my_eta(x, y, eta_s));
@@ -263,19 +242,19 @@ event init(i = 0)
             residual_J[] = (my_phi[1, 0] + my_phi[-1, 0] + my_phi[0, 1] + my_phi[0, -1] - 4 * my_phi[0, 0]);
           }
         }
-      } while (normf(residual_J).max / normf(my_phi).max > 1e-4);
+      } while (normf(residual_J).max / normf(my_phi).max > 1e-6);
       // Smooth the boundary phi
 
       foreach ()
       {
         foreach_dimension()
         {
-          // u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta*fm.x[]) * f[];
-          u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta )* f[];
+          u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta*fm.x[]) * f[];
+          // u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta )* f[];
           // u.y[] = (my_phi[0,1] - my_phi[0,-1]) / (2.0 * Delta) * f[];
         }
       }
- foreach ()
+      foreach ()
       // foreach_dimension()
       {
         if (f[] > 0 && f[] < 1 && f[0, -1] == 1)
@@ -309,34 +288,106 @@ event init(i = 0)
     On trees, we repeat this initialisation until mesh adaptation does
     not refine the mesh anymore. */
 
-    // #if TREE
-    //     while (adapt_wavelet({f, u},
-    //                          (double[]){0.02, uemax, uemax, uemax}, LEVEL, 5)
-    //                .nf);
-    // #else
-    //     while (0);
-    // #endif
-    while (0);
+    #if TREE
+        while (adapt_wavelet({f, u},
+                             (double[]){0.01, uemax, uemax/y_metric, uemax}, LEVEL, 5)
+                   .nf);
+    #else
+        while (0);
+    #endif
+    // while (0);
   }
 }
 
-event movies(t += 0.01)
+// event set_air_velocity_0 (i++)
+// {
+//   foreach(){
+//     if (f[]==0)
+//     {
+//       u.x[]=0;
+//       u.y[]=0;
+//     }
+//   }
+// }
+
+event movies(t+=0.05)
 {
   {
     static FILE *fp = popen("ppm2mp4 f.mp4", "w");
     output_ppm(f, fp, min = 0, max = 1, n = 512);
   }
 
-#if TREE
-  {
-    scalar l[];
-    foreach ()
-      l[] = level;
-    static FILE *fp = popen("ppm2mp4 level.mp4", "w");
-    output_ppm(l, fp, min = 5, max = LEVEL, n = 512);
-  }
-#endif
+// #if TREE
+//   {
+//     scalar l[];
+//     foreach ()
+//       l[] = level;
+//     static FILE *fp = popen("ppm2mp4 level.mp4", "w");
+//     output_ppm(l, fp, min = 5, max = LEVEL, n = 512);
+//   }
+// #endif
 }
+
+
+event my_movie(t+=0.05){
+  clear();
+  view (quat = {0.000, 0.000, 0.000, 1.000},
+      fov = 30, near = 0.01, far = 1000,
+      tx = 0.051, ty = 0.139, tz = -2.607,
+      width = 1024, height = 744,bg={0,0,0});
+draw_vof (c = "f");
+
+// squares (color = "u.x",spread=5,cbar=true);
+squares("u.x", 
+                   NULL, // 不指定 z 轴
+                   -0.3, 0.3, // 自动计算最小和最大值
+                   3, // 扩展因子
+                   true, // 线性插值
+                   cool_warm, // 颜色映射使用 jet
+                   (float[]){0, 0, 1}, // 面的颜色为蓝色
+                   (float[]){0, 0, 0}, // 线的颜色为黑色
+                   false, // 不使用表达式
+                   (coord){0, 0, 1}, // 法向量，适用于 3D
+                   0, // 平面的 alpha 值
+                   1, // 线宽
+                   true, // 启用颜色条
+                   15, // 颜色条的大小
+                   (float[]){-0.2, -.85}, // 颜色条的位置
+                   "u.x", // 标签
+                   1, // 标签的缩放因子
+                   true, // 水平
+                   true, // 添加边框
+                   false, // 不添加中间值标签
+                   50, // 字体大小
+                   "%g", // 标签格式
+                   50 // 等级数量
+    );
+box ();
+cells ();
+ save ("ux.mp4");
+}
+
+event output_vtkfiles(t+=0.05){
+char name[80];
+    int scaled_value = (int)round(100 * t);
+    const char* subdirectory = "vtk_output";  // Specify the subdirectory name
+
+    // Create the subdirectory if it does not exist
+    #ifdef _WIN32
+    mkdir(subdirectory);  // Windows
+    #else
+    mkdir(subdirectory, 0777);  // Linux/Unix
+    #endif
+
+    // Update the file path to include the subdirectory
+    sprintf(name, "%s/out_%03d.vtk", subdirectory, scaled_value);
+    FILE *fp = fopen(name, "w");
+// scalar * l = list_copy (all);
+scalar * l = {f,u.x,u.y,p};
+  output_vtk((scalar *) {l}, 1<<LEVEL, (FILE *) fp, true);
+}
+
+
 event snapshot(i += 200)
 {
   char name[80];
@@ -356,6 +407,14 @@ event end(t = 2*k_/sqrt(g_*k_))
   dump("end");
 }
 
+
+// event end(t=3)
+// {
+//   fprintf(fout, "i = %d t = %g\n", i, t);
+//   dump("end");
+// }
+
+
 /**
 ## Mesh adaptation
 
@@ -365,7 +424,7 @@ and velocity. */
 #if TREE
 event adapt(i++)
 {
-  adapt_wavelet({f, u}, (double[]){0.01, uemax, uemax, uemax}, LEVEL, 5);
+  adapt_wavelet({f, u}, (double[]){0.01, uemax, uemax/y_metric, uemax}, LEVEL, 6);
 }
 #endif
 
