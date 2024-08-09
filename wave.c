@@ -58,7 +58,7 @@ these values. */
 #define k_ (2. * pi)
 #define h_ 0.5
 #define g_ 1.
-#define y_metric 1
+#define y_metric 0.1
 /**
 The program takes optional arguments which are the level of
 refinement, steepness, Bond and Reynolds numbers, and optional Dirac
@@ -211,6 +211,7 @@ event init(i = 0)
 
       fraction(f, my_f[]);
       // fraction(f, my_eta(x, y, eta_s));
+      while(adapt_wavelet({f}, (double[]){0.001}, 12,5).nf);
       foreach ()
       {
         if (f[] == 1 || f[] == 0)
@@ -242,8 +243,13 @@ event init(i = 0)
             residual_J[] = (my_phi[1, 0] + my_phi[-1, 0] + my_phi[0, 1] + my_phi[0, -1] - 4 * my_phi[0, 0]);
           }
         }
-      } while (normf(residual_J).max / normf(my_phi).max > 1e-6);
-      // Smooth the boundary phi
+      } while (normf(residual_J).max / normf(my_phi).max > 1e-3);
+while(adapt_wavelet({f,my_phi}, (double[]){0.001,0.1}, 12,5).nf);
+foreach(){
+  if(my_phi[]==0){
+    my_phi[]=my_phi[0,-1]*cosh(y);
+  }
+}
 
       foreach ()
       {
@@ -254,6 +260,7 @@ event init(i = 0)
           // u.y[] = (my_phi[0,1] - my_phi[0,-1]) / (2.0 * Delta) * f[];
         }
       }
+
       foreach ()
       // foreach_dimension()
       {
@@ -280,35 +287,25 @@ event init(i = 0)
           }
         }
       boundary((scalar *){u});
-      dump();
-
+      
+dump();
     }
 
     /**
     On trees, we repeat this initialisation until mesh adaptation does
     not refine the mesh anymore. */
 
-    #if TREE
-        while (adapt_wavelet({f, u},
-                             (double[]){0.01, uemax, uemax/y_metric, uemax}, LEVEL, 5)
-                   .nf);
-    #else
-        while (0);
-    #endif
-    // while (0);
+    // #if TREE
+    //     while (adapt_wavelet({f, u},
+    //                          (double[]){0.01, uemax, uemax/y_metric, uemax}, LEVEL, 5)
+    //                .nf);
+    // #else
+    //     while (0);
+    // #endif
+    
+    while (0);
   }
 }
-
-// event set_air_velocity_0 (i++)
-// {
-//   foreach(){
-//     if (f[]==0)
-//     {
-//       u.x[]=0;
-//       u.y[]=0;
-//     }
-//   }
-// }
 
 event movies(t+=0.05)
 {
@@ -401,7 +398,7 @@ event snapshot(i += 200)
 The wave period is `k_/sqrt(g_*k_)`. We want to run up to 2
 (alternatively 4) periods. */
 
-event end(t = 2*k_/sqrt(g_*k_))
+event end(t = 6)
 {
   fprintf(fout, "i = %d t = %g\n", i, t);
   dump("end");

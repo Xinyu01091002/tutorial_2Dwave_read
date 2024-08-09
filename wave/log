@@ -1,8 +1,0 @@
-Exceeded maximum number of elements: 513
-
-reread
-^
-"/home/lxy/Desktop/BASILISK/basilisk/src/navier-stokes/perfs.plot" line 227: deprecated command
-
-sh: 1: kill: No such process
-

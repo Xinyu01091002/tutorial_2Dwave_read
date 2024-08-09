@@ -5,3 +5,5 @@ perfs
 *.mp4
 .vscode/
 ./
+./wave
+*.vtk
