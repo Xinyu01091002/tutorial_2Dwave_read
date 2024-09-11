@@ -14,7 +14,7 @@ results are visualised using Basilisk view. */
 #include "view.h"
 #include "tag.h"
 #include "vtk.h"
-
+#include "output_htg.h"
 /**
 We log some profiling information. */
 
@@ -58,7 +58,9 @@ these values. */
 #define k_ (2. * pi)
 #define h_ 0.5
 #define g_ 1.
-#define y_metric 0.1
+#define y_metric 1
+#define x_metric 1
+#define xy_metric (x_metric*y_metric)
 /**
 The program takes optional arguments which are the level of
 refinement, steepness, Bond and Reynolds numbers, and optional Dirac
@@ -80,18 +82,17 @@ int main(int argc, char *argv[])
   /**
   The domain is a cubic box centered on the origin and of length
   , periodic in the x- and z-directions. */
-// Dimensionless group velocity 
-double cp=1.56;
+
 // Modify the metric factor
 face vector fmv=fm;
 scalar cmv=cm;
-const face vector unityf1[] = {1.[0],y_metric[0],1.[0]};
-const scalar unity1[] = y_metric[0];
+const face vector unityf1[] = {x_metric[0],y_metric[0],1.[0]};
+const scalar unity1[] = xy_metric[0];
 fm.x=unityf1.x;
 fm.y=unityf1.y;
 cm=unity1;
-  L0 = 2;
-  size(L0);
+NOT_UNUSED(fmv); NOT_UNUSED(cmv);
+  L0 = 1;
   origin(-L0 / 2, -L0 / 2, -L0 / 2);
   // origin (-L0/2, -L0/2);
   //  size(L3);
@@ -120,7 +121,7 @@ cm=unity1;
   rho2 = RATIO;
   mu1 = 1.0 / RE; // using wavelength as length scale
   mu2 = 1/ RE * MURATIO;
-  f.sigma = 1. / (BO * sq(k_));
+  f.sigma = 1 / (BO * sq(k_));
   G.y = -g_;
   // // Modify the vertical metric scale
 
@@ -133,7 +134,7 @@ cm=unity1;
   // #else
   //   N = 1 << LEVEL;
   // #endif
-  N = 512;
+  N = 256;
 
   run();
 }
@@ -149,7 +150,6 @@ double my_eta(double x, double y, double *eta_s)
 
 event init(i = 0)
 {
-
   if (!restore("restart"))
   {
     FILE *fp;
@@ -195,7 +195,7 @@ event init(i = 0)
       {
         static int index_x = 1;
         index_x = round((x + L0 / 2) / Delta_x); // Remember to change when L0 is not 1
-        my_f[] = eta_s[index_x]- y*fm.y[];
+        my_f[] = eta_s[index_x]- y/fm.y[];
         my_phi[] = phi_s[index_x];
       }
       // foreach ()
@@ -211,7 +211,7 @@ event init(i = 0)
 
       fraction(f, my_f[]);
       // fraction(f, my_eta(x, y, eta_s));
-      while(adapt_wavelet({f}, (double[]){0.001}, 12,5).nf);
+      // while(adapt_wavelet({f}, (double[]){0.001}, 13,5).nf);
       foreach ()
       {
         if (f[] == 1 || f[] == 0)
@@ -243,19 +243,20 @@ event init(i = 0)
             residual_J[] = (my_phi[1, 0] + my_phi[-1, 0] + my_phi[0, 1] + my_phi[0, -1] - 4 * my_phi[0, 0]);
           }
         }
-      } while (normf(residual_J).max / normf(my_phi).max > 1e-3);
-while(adapt_wavelet({f,my_phi}, (double[]){0.001,0.1}, 12,5).nf);
-foreach(){
-  if(my_phi[]==0){
-    my_phi[]=my_phi[0,-1]*cosh(y);
-  }
-}
+      // } while (normf(residual_J).max / normf(my_phi).max > 1e-3);
+      } while (normf(residual_J).max > 1e-7);
+// while(adapt_wavelet({f,my_phi}, (double[]){0.001,0.1}, 12,5).nf);
+// foreach(){
+//   if(my_phi[]==0){
+//     my_phi[]=my_phi[0,-1]*cosh(y);
+//   }
+// }
 
       foreach ()
       {
         foreach_dimension()
         {
-          u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta*fm.x[]) * f[];
+          u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta) * f[]/fm.x[];
           // u.x[] = (my_phi[1] - my_phi[-1]) / (2.0 * Delta )* f[];
           // u.y[] = (my_phi[0,1] - my_phi[0,-1]) / (2.0 * Delta) * f[];
         }
@@ -360,30 +361,36 @@ squares("u.x",
                    50 // 等级数量
     );
 box ();
-cells ();
+// cells ();
  save ("ux.mp4");
 }
 
-event output_vtkfiles(t+=0.05){
-char name[80];
-    int scaled_value = (int)round(100 * t);
-    const char* subdirectory = "vtk_output";  // Specify the subdirectory name
+// event output_vtkfiles(t+=0.05){
+// char name[80];
+//     int scaled_value = (int)round(100 * t);
+//     const char* subdirectory = "vtk_output";  // Specify the subdirectory name
 
-    // Create the subdirectory if it does not exist
-    #ifdef _WIN32
-    mkdir(subdirectory);  // Windows
-    #else
-    mkdir(subdirectory, 0777);  // Linux/Unix
-    #endif
+//     // Create the subdirectory if it does not exist
+//     #ifdef _WIN32
+//     mkdir(subdirectory);  // Windows
+//     #else
+//     mkdir(subdirectory, 0777);  // Linux/Unix
+//     #endif
 
-    // Update the file path to include the subdirectory
-    sprintf(name, "%s/out_%03d.vtk", subdirectory, scaled_value);
-    FILE *fp = fopen(name, "w");
-// scalar * l = list_copy (all);
-scalar * l = {f,u.x,u.y,p};
-  output_vtk((scalar *) {l}, 1<<LEVEL, (FILE *) fp, true);
+//     // Update the file path to include the subdirectory
+//     sprintf(name, "%s/out_%03d.vtk", subdirectory, scaled_value);
+//     FILE *fp = fopen(name, "w");
+// // scalar * l = list_copy (all);
+// scalar * l = {f,u.x,u.y,p};
+//   output_vtk((scalar *) {l}, 1<<LEVEL, (FILE *) fp, true);
+// }
+
+event output_htg(i+=10){
+  char path[]="htg"; // no slash at the end!!
+  char prefix[80];
+  sprintf(prefix, "data_%06d", i);
+  output_htg((scalar * ) {f},(vector * ){u}, path, prefix, i, t);
 }
-
 
 event snapshot(i += 200)
 {
@@ -398,7 +405,7 @@ event snapshot(i += 200)
 The wave period is `k_/sqrt(g_*k_)`. We want to run up to 2
 (alternatively 4) periods. */
 
-event end(t = 6)
+event end(t = 4)
 {
   fprintf(fout, "i = %d t = %g\n", i, t);
   dump("end");
@@ -421,7 +428,7 @@ and velocity. */
 #if TREE
 event adapt(i++)
 {
-  adapt_wavelet({f, u}, (double[]){0.01, uemax, uemax/y_metric, uemax}, LEVEL, 6);
+  adapt_wavelet({f, u}, (double[]){0.01, uemax/y_metric, uemax/y_metric, uemax}, LEVEL, 6);
 }
 #endif
 
